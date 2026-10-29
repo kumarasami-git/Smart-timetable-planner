@@ -1,0 +1,1165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Smart Timetable Planner</title>
+<style>
+  * { box-sizing: border-box; }
+  body { font-family: 'Segoe UI', Arial, sans-serif; background: #f4f6f9; margin: 0; padding: 20px; color: #222; }
+  h1 { text-align: center; color: #1a237e; margin: 0 0 4px; }
+  .subtitle { text-align: center; color: #666; margin-bottom: 18px; }
+
+  /* stepper */
+  .stepper { display: flex; justify-content: center; gap: 6px; max-width: 1100px; margin: 0 auto 18px; flex-wrap: wrap; }
+  .step { display: flex; align-items: center; gap: 8px; padding: 8px 16px; border-radius: 24px; background: #e8eaf6; color: #5c6bc0;
+          font-weight: 600; font-size: 14px; cursor: default; user-select: none; }
+  .step .n { width: 24px; height: 24px; border-radius: 50%; background: #c5cae9; color: #283593; display: grid; place-items: center; font-size: 13px; }
+  .step.reach { cursor: pointer; }
+  .step.reach:hover { background: #d9ddf3; }
+  .step.active { background: #3949ab; color: #fff; }
+  .step.active .n { background: #fff; color: #3949ab; }
+  .step.done .n { background: #43a047; color: #fff; }
+
+  .panel { background: #fff; border-radius: 10px; padding: 20px; max-width: 1100px; margin: 0 auto 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+  .panel h2 { margin: 0 0 4px; color: #283593; font-size: 18px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .hint { color: #666; font-size: 13px; margin: 0 0 14px; }
+
+  .form-row { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 10px; align-items: flex-end; }
+  .form-row label { font-size: 13px; color: #444; display: flex; flex-direction: column; gap: 4px; }
+  input, select { padding: 8px 10px; border: 1px solid #ccc; border-radius: 6px; font-size: 14px; background: #fff; }
+  input[type="checkbox"], input[type="radio"] { width: 17px; height: 17px; margin: 0; padding: 0; }
+  button { background: #3949ab; color: #fff; border: none; padding: 10px 18px; border-radius: 6px; font-size: 14px; cursor: pointer; font-weight: 600; }
+  button:hover { background: #283593; }
+  button.secondary { background: #78909c; }
+  button.secondary:hover { background: #546e7a; }
+  button.small { padding: 5px 12px; font-size: 12px; }
+  button.danger { background: #e53935; }
+  button.danger:hover { background: #c62828; }
+  button.ghost { background: #e8eaf6; color: #283593; }
+  button.ghost:hover { background: #d9ddf3; }
+  button:disabled { opacity: .5; cursor: not-allowed; }
+
+  .chips { display: flex; gap: 8px; flex-wrap: wrap; }
+  .chip { display: inline-flex; align-items: center; gap: 8px; padding: 8px 14px; border: 1px solid #c5cae9; border-radius: 20px;
+          background: #fff; cursor: pointer; font-size: 14px; font-weight: 600; color: #283593; user-select: none; }
+  .chip:has(input:checked) { background: #3949ab; color: #fff; border-color: #3949ab; }
+  .chip input { display: none; }
+
+  table.subjects { width: 100%; border-collapse: collapse; margin-top: 8px; font-size: 13px; }
+  table.subjects th, table.subjects td { border: 1px solid #e0e0e0; padding: 6px 8px; text-align: left; }
+  table.subjects th { background: #e8eaf6; }
+  table.subjects td input, table.subjects td select { padding: 5px 7px; font-size: 13px; width: 100%; }
+  table.subjects tr.sem-row td { background: #f3f4fb; font-weight: 700; color: #1a237e; }
+
+  .check-list { border: 1px solid #ccc; border-radius: 6px; padding: 6px 10px; max-height: 170px; min-width: 300px; overflow-y: auto; background: #fff; }
+  .check-list label { flex-direction: row; align-items: center; gap: 8px; padding: 3px 0; font-size: 13px; cursor: pointer; }
+
+  .warn { background: #fff8e1; border: 1px solid #ffe082; color: #7a5b00; border-radius: 8px; padding: 10px 14px; font-size: 13px; margin: 10px 0; }
+  .ok { background: #e8f5e9; border: 1px solid #a5d6a7; color: #1b5e20; border-radius: 8px; padding: 10px 14px; font-size: 13px; margin: 10px 0; }
+  .empty { color: #888; font-size: 13px; padding: 10px 0; }
+
+  /* sections step */
+  .sem-card { border: 1px solid #d0d4e4; border-radius: 10px; padding: 14px; margin-top: 14px; }
+  .sem-card > h3 { margin: 0 0 10px; color: #1a237e; font-size: 16px; }
+  .sec-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(290px, 1fr)); gap: 12px; margin-top: 12px; }
+  .sec-box { border: 1px solid #c5cae9; border-radius: 8px; padding: 10px 12px; background: #fafbff; }
+  .sec-box .head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; font-weight: 700; color: #283593; }
+  .sec-box label { display: flex; align-items: center; gap: 8px; font-size: 13px; padding: 3px 0; cursor: pointer; }
+  .sec-box .cnt { font-size: 12px; color: #666; font-weight: 400; }
+
+  .nav-bar { display: flex; justify-content: space-between; max-width: 1100px; margin: 0 auto 30px; }
+  .generate-bar { text-align: center; margin: 10px 0 20px; }
+  .generate-bar button { font-size: 16px; padding: 12px 30px; margin: 0 4px; }
+
+  .stats-row { display: flex; justify-content: center; gap: 24px; margin-bottom: 18px; flex-wrap: wrap; }
+  .stat-box { background: #fff; border-radius: 8px; padding: 12px 22px; text-align: center; box-shadow: 0 1px 4px rgba(0,0,0,0.08); min-width: 110px; }
+  .stat-box .num { font-size: 22px; font-weight: 700; color: #1a237e; }
+  .stat-box .label { font-size: 12px; color: #777; }
+
+  .tabs { display: flex; justify-content: center; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; }
+  .tab-btn { background: #e8eaf6; color: #283593; padding: 9px 18px; border-radius: 20px; font-weight: 600; font-size: 14px; }
+  .tab-btn:hover { background: #d9ddf3; }
+  .tab-btn.active { background: #3949ab; color: #fff; }
+  .tabs.sem .tab-btn { background: #fff; border: 1px solid #c5cae9; }
+  .tabs.sem .tab-btn.active { background: #1a237e; border-color: #1a237e; }
+
+  .section-panel { display: none; overflow-x: auto; }
+  .section-panel.active { display: block; }
+  table.grid { width: 100%; border-collapse: collapse; background: #fff; font-size: 13px; }
+  table.grid th, table.grid td { border: 1px solid #d0d4e4; padding: 8px 6px; text-align: center; vertical-align: middle; min-width: 90px; }
+  table.grid th { background: #283593; color: #fff; }
+  table.grid td.day-label { background: #e8eaf6; font-weight: 700; color: #1a237e; }
+  .cell-theory { background: #bbdefb; }
+  .cell-lab { background: #64b5f6; color: #fff; font-weight: 600; }
+  .cell-placement { background: #a5d6a7; font-weight: 600; }
+  .cell-elective { background: #d1c4e9; }
+  .cell-project { background: #ffe0b2; font-weight: 600; }
+  .cell-blocked { background: #ef9a9a; color: #b71c1c; font-style: italic; }
+  .cell-empty { background: #fafafa; color: #bbb; }
+  .cell-split { font-size: 11px; }
+  .subj-name { display: block; font-weight: 600; }
+  .subj-code { display: block; font-size: 11px; opacity: 0.8; }
+  .subj-room { display: block; font-size: 10px; opacity: 0.75; }
+
+  .legend { display: flex; justify-content: center; gap: 18px; margin: 12px 0; font-size: 12px; flex-wrap: wrap; }
+  .legend span { display: flex; align-items: center; gap: 6px; }
+  .legend .box { width: 14px; height: 14px; border-radius: 3px; display: inline-block; }
+
+  .bar { height: 10px; background: #e8eaf6; border-radius: 5px; overflow: hidden; min-width: 120px; }
+  .bar > i { display: block; height: 100%; background: #3949ab; }
+  .bar > i.hi { background: #fb8c00; }
+
+  #status { text-align: center; font-weight: 600; margin: 10px 0; min-height: 20px; }
+  #loading { text-align: center; color: #3949ab; font-weight: 600; margin: 10px 0; display: none; }
+  details.api { max-width: 1100px; margin: 0 auto 14px; font-size: 13px; color: #555; }
+  details.api summary { cursor: pointer; text-align: right; }
+</style>
+</head>
+<body>
+
+<h1>Smart Timetable Planner</h1>
+<div class="subtitle">Faculty-aware, clash-free timetable scheduling</div>
+
+<details class="api">
+  <summary>Backend settings</summary>
+  <div class="panel" style="margin-top:8px;">
+    <label style="font-size:13px;">Backend URL
+      <input type="text" id="apiBase" value="http://localhost:8000/api" style="width:280px;">
+    </label>
+  </div>
+</details>
+
+<div class="stepper" id="stepper"></div>
+
+<!-- ───────────── STEP 1 : session, semesters, subjects ───────────── -->
+<div id="step1" class="stepStage">
+  <div class="panel">
+    <h2>1 · Session &amp; semesters</h2>
+    <p class="hint">Pick the academic session and whether you are planning odd or even semesters, then tick the semesters to plan together.</p>
+    <div class="form-row">
+      <label>Academic Year
+        <input type="text" id="academicYear" value="2026-27" style="width:110px;" onchange="saveSettings()">
+      </label>
+      <label>Department
+        <span style="display:flex;gap:6px;align-items:center;">
+          <select id="departmentId" style="min-width:200px;" onchange="onDepartmentChange()"></select>
+          <button class="ghost small" type="button" onclick="addDepartment()">+ New</button>
+          <button class="ghost small" type="button" onclick="renameDepartment()">✎ Rename</button>
+          <button class="danger small" type="button" onclick="deleteDepartment()">Delete</button>
+        </span>
+      </label>
+      <div style="display:flex;flex-direction:column;gap:4px;font-size:13px;color:#444;">
+        Semester type
+        <div class="chips">
+          <label class="chip"><input type="radio" name="parity" value="odd" onchange="setParity('odd')"> Odd (1, 3, 5, 7)</label>
+          <label class="chip"><input type="radio" name="parity" value="even" onchange="setParity('even')"> Even (2, 4, 6, 8)</label>
+        </div>
+      </div>
+    </div>
+    <div style="font-size:13px;color:#444;margin-bottom:6px;">Semesters to plan (tick one or more)</div>
+    <div class="chips" id="semChips"></div>
+  </div>
+
+  <div class="panel">
+    <h2>Subjects &amp; credits <button class="ghost small" onclick="loadSubjects()">↻ Refresh</button></h2>
+    <p class="hint">Add every subject of the selected semesters once. Sections that study different subjects are set up in step 3.</p>
+    <div class="form-row">
+      <label>Semester <select id="subSem" style="width:90px;"></select></label>
+      <label>Subject Name <input type="text" id="subName" placeholder="e.g. Data Structures" style="width:210px;"></label>
+      <label>Code <input type="text" id="subCode" placeholder="CS303" style="width:100px;"></label>
+      <label>Credits
+        <select id="subCredits">
+          <option value="4">4 (3 theory + 1 lab)</option>
+          <option value="3" selected>3 (3 theory)</option>
+          <option value="2">2 (2 theory)</option>
+          <option value="1">1 (1 theory)</option>
+        </select>
+      </label>
+      <label>Has Lab? <input type="checkbox" id="subHasLab"></label>
+      <label title="No theory classes: only a lab of 2 consecutive periods per batch">Lab only? <input type="checkbox" id="subLabOnly" onchange="onLabOnlyChange()"></label>
+      <label>Placement? <input type="checkbox" id="subIsPlacement" onchange="onPlacementChange()"></label>
+      <label title="Fills every remaining free period (used for project hours in the final semesters)">Project hours? <input type="checkbox" id="subIsProject" onchange="onProjectChange()"></label>
+      <label title="Subjects with the same group (E1, E2 …) run at the same time and share the group's weekly hours">Elective group
+        <input type="text" id="subElective" placeholder="E1" style="width:70px;" oninput="onElectiveChange()"></label>
+      <button onclick="addSubject()">+ Add Subject</button>
+    </div>
+    <table class="subjects">
+      <thead><tr><th>Name</th><th>Code</th><th>Credits</th><th>Type</th><th>Placement?</th><th style="width:90px;">Remove</th></tr></thead>
+      <tbody id="subjectsBody"></tbody>
+    </table>
+  </div>
+
+  <div class="panel">
+    <h2>Electives — paste from your sheet</h2>
+    <p class="hint">One subject per line: <b>group, code, subject name, faculty, second faculty (optional)</b>, separated by tabs (copy straight from a sheet) or 2+ spaces. Use <b>-</b> for no second faculty.
+      Subjects of the same group (E1, E2 …) run at the same time and share the group's 12 weekly hours (2 a day). Faculty already in the list are matched by name; any missing ones are added.</p>
+    <textarea id="elRows" rows="7" style="width:100%;font-family:ui-monospace,Menlo,monospace;font-size:12px;padding:8px;border:1px solid #ccc;border-radius:6px;"
+      placeholder="E1&#9;IT844E02&#9;Web Application Security&#9;Dr Baburaj&#9;-&#10;E2&#9;IT845E02&#9;System Security&#9;Dr Natarajan&#9;-"></textarea>
+    <div class="form-row" style="margin-top:10px;">
+      <label>Semester <select id="elSem" style="width:90px;"></select></label>
+      <label>Credits per subject <input type="number" id="elCredits" value="3" min="1" max="6" style="width:90px;"></label>
+      <label style="flex-direction:row;align-items:center;gap:8px;"><input type="checkbox" id="elProject" checked> Also add "Project Work" (fills all remaining periods)</label>
+      <button onclick="importElectives()">Import Electives</button>
+    </div>
+    <div id="elResult"></div>
+  </div>
+
+  <div class="panel">
+    <h2>Blocked periods <button class="ghost small" onclick="loadBlocked()">↻ Refresh</button></h2>
+    <p class="hint">Periods no class can be scheduled in, for example a weekly meeting or mentoring hour. Choose whether a block applies to every semester or only one.</p>
+    <div class="form-row">
+      <label>Day <select id="blkDay">
+        <option>Monday</option><option>Tuesday</option><option>Wednesday</option>
+        <option>Thursday</option><option>Friday</option><option>Saturday</option></select></label>
+      <label>Period <select id="blkPeriod">
+        <option>1</option><option>2</option><option>3</option><option selected>4</option><option>5</option><option>6</option></select></label>
+      <label>Reason <input type="text" id="blkReason" placeholder="e.g. Meeting, Mentoring" style="width:200px;" list="blkReasons"></label>
+      <datalist id="blkReasons"><option value="Meeting"><option value="Mentoring"><option value="Project hour"><option value="Lunch"></datalist>
+      <label>Applies to <select id="blkSem" style="min-width:150px;"></select></label>
+      <button onclick="addBlocked()">+ Block Period</button>
+    </div>
+    <table class="subjects">
+      <thead><tr><th>Day</th><th>Period</th><th>Reason</th><th>Applies to</th><th style="width:90px;">Remove</th></tr></thead>
+      <tbody id="blockedBody"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ───────────── STEP 2 : faculty ───────────── -->
+<div id="step2" class="stepStage" style="display:none;">
+  <div class="panel">
+    <h2>2 · Faculty <button class="ghost small" onclick="loadFaculty()">↻ Refresh</button></h2>
+    <p class="hint">Designation sets the weekly teaching-hour cap (Professor 12, Associate 14, Assistant 16, Adjunct 16). Edit any row and press Save. The scheduler never fills a whole week, so faculty keep hours for other semesters.</p>
+    <div class="form-row">
+      <label>Faculty Name <input type="text" id="facName" placeholder="e.g. Dr Balamurugan" style="width:210px;"></label>
+      <label>Email (required) <input type="email" id="facEmail" placeholder="name@christuniversity.in" style="width:230px;"></label>
+      <label>Designation
+        <select id="facSeniority" onchange="applyDefaultHours('facSeniority','facMaxHours')">
+          <option value="Professor">Professor</option>
+          <option value="Associate Professor" selected>Associate Professor</option>
+          <option value="Assistant Professor">Assistant Professor</option>
+          <option value="Adjunct Faculty">Adjunct Faculty</option>
+        </select>
+      </label>
+      <label>Max Hrs/Week <input type="number" id="facMaxHours" value="14" min="1" max="40" style="width:90px;"></label>
+      <button onclick="addFaculty()">+ Add Faculty</button>
+    </div>
+    <table class="subjects">
+      <thead><tr><th>Name</th><th>Email</th><th>Designation</th><th style="width:110px;">Max Hrs/Week</th><th style="width:150px;">Actions</th></tr></thead>
+      <tbody id="facultyBody"></tbody>
+    </table>
+  </div>
+
+  <div class="panel">
+    <h2>Assign faculty to subjects</h2>
+    <p class="hint">Tick every faculty member who can teach a subject. The scheduler picks whoever is free and under their hour cap.</p>
+    <div class="form-row">
+      <label>Subject <select id="assignSubject" style="min-width:270px;"></select></label>
+      <div style="display:flex;flex-direction:column;gap:4px;font-size:13px;color:#444;">
+        Faculty (tick one or more)
+        <div id="assignFaculty" class="check-list"></div>
+      </div>
+      <button onclick="assignFacultyToSubject()">Assign Selected</button>
+    </div>
+    <div id="coverage"></div>
+    <table class="subjects">
+      <thead><tr><th>Semester</th><th>Subject</th><th>Faculty</th><th style="width:90px;">Remove</th></tr></thead>
+      <tbody id="mappingBody"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ───────────── STEP 3 : sections ───────────── -->
+<div id="step3" class="stepStage" style="display:none;">
+  <div class="panel">
+    <h2>3 · Sections &amp; their subjects <button class="ghost small" onclick="loadSections()">↻ Refresh</button></h2>
+    <p class="hint">Add the sections for each semester (3A, 3B, 3C …). Every subject is ticked by default. Untick a subject a section does not study, or tick the one extra subject a specialisation (e.g. IOT) has. Changes save automatically.</p>
+    <div id="semCards"></div>
+  </div>
+</div>
+
+<!-- ───────────── STEP 4 : generate ───────────── -->
+<div id="step4" class="stepStage" style="display:none;">
+  <div class="panel">
+    <h2>4 · Generate timetables</h2>
+    <div id="summary"></div>
+    <div class="generate-bar">
+      <button onclick="generate()">⚡ Generate Timetables</button>
+      <button class="secondary" onclick="resetOnly()">Reset Only</button>
+    </div>
+    <div id="loading">Generating timetables, please wait...</div>
+  </div>
+
+  <div id="resultsArea" style="display:none;">
+    <div class="stats-row">
+      <div class="stat-box"><div class="num" id="statSems">0</div><div class="label">Semesters</div></div>
+      <div class="stat-box"><div class="num" id="statSections">0</div><div class="label">Sections</div></div>
+      <div class="stat-box"><div class="num" id="statTotal">0</div><div class="label">Total Slots</div></div>
+      <div class="stat-box"><div class="num" id="statBlocked">0</div><div class="label">Blocked Slots</div></div>
+    </div>
+    <div class="legend">
+      <span><span class="box" style="background:#bbdefb;"></span> Theory</span>
+      <span><span class="box" style="background:#64b5f6;"></span> Lab (2 periods)</span>
+      <span><span class="box" style="background:#a5d6a7;"></span> Placement</span>
+      <span><span class="box" style="background:#d1c4e9;"></span> Elective</span>
+      <span><span class="box" style="background:#ffe0b2;"></span> Project hour</span>
+      <span><span class="box" style="background:#ef9a9a;"></span> Blocked</span>
+      <span><span class="box" style="background:#fafafa;border:1px solid #ccc;"></span> Free</span>
+    </div>
+    <div id="genWarnings"></div>
+    <div class="tabs sem" id="semTabs"></div>
+    <div class="tabs" id="sectionTabs"></div>
+    <div class="panel" style="padding:12px;"><div id="sectionPanels"></div></div>
+
+    <div class="panel">
+      <h2>Faculty load in this run</h2>
+      <p class="hint">Teaching hours scheduled per faculty member across all the timetables above, against their weekly cap.</p>
+      <table class="subjects">
+        <thead><tr><th>Faculty</th><th>Designation</th><th>Hours scheduled</th><th>Weekly cap</th><th style="width:200px;">Load</th></tr></thead>
+        <tbody id="loadBody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<div id="status"></div>
+
+<div class="nav-bar">
+  <button class="secondary" id="backBtn" onclick="prevStep()">← Back</button>
+  <button id="nextBtn" onclick="nextStep()">Next →</button>
+</div>
+
+<script>
+const DAYS = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+const PERIODS = [1,2,3,4,5,6];
+const STEPS = ['Session & Subjects', 'Faculty', 'Sections', 'Generate'];
+const PARITY = { odd: [1,3,5,7], even: [2,4,6,8] };
+
+const S = {
+  step: 1, maxStep: 1,
+  parity: 'odd', sems: [],
+  departments: [],
+  subjects: [],      // subjects of the chosen department, chosen semesters only
+  faculty: [], mappings: [],
+  sections: {},      // semester -> [{id,name,subject_ids}]
+  results: null
+};
+
+const $ = id => document.getElementById(id);
+const esc = v => String(v ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const apiBase = () => $('apiBase').value.replace(/\/+$/, '');
+const deptId = () => $('departmentId').value;
+const sortedSems = () => [...S.sems].sort((a, b) => a - b);
+
+async function api(path, opts) {
+  const res = await fetch(apiBase() + path, opts);
+  if (!res.ok) {
+    let t = await res.text();
+    try { t = JSON.parse(t).error || t; } catch (e) {}
+    throw new Error(`${res.status} ${t}`);
+  }
+  return res.json();
+}
+const jsonOpts = (method, body) => ({ method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+
+/* ───────── remembered settings (nice-to-have only) ───────── */
+function saveSettings() {
+  try {
+    localStorage.setItem('ttp-settings', JSON.stringify({
+      year: $('academicYear').value, dept: deptId(), parity: S.parity, sems: S.sems, api: $('apiBase').value
+    }));
+  } catch (e) {}
+}
+function loadSettings() {
+  try { return JSON.parse(localStorage.getItem('ttp-settings') || 'null'); } catch (e) { return null; }
+}
+
+/* ───────── toast / status ───────── */
+let toastTimer = null;
+function setStatus(msg, isError) {
+  const el = $('status');
+  el.textContent = msg || '';
+  el.style.color = isError ? '#c62828' : '#2e7d32';
+  let toast = $('toast');
+  if (!toast) {
+    toast = document.createElement('div');
+    toast.id = 'toast';
+    toast.style.cssText = 'position:fixed;top:16px;right:16px;max-width:420px;padding:12px 16px;border-radius:8px;font-size:14px;' +
+      'font-weight:600;color:#fff;z-index:9999;box-shadow:0 4px 12px rgba(0,0,0,0.25);display:none;word-break:break-word;';
+    document.body.appendChild(toast);
+  }
+  if (!msg) { toast.style.display = 'none'; return; }
+  toast.textContent = msg;
+  toast.style.background = isError ? '#c62828' : '#2e7d32';
+  toast.style.display = 'block';
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => { toast.style.display = 'none'; }, isError ? 12000 : 3500);
+}
+
+/* ───────── stepper / navigation ───────── */
+function renderStepper() {
+  $('stepper').innerHTML = STEPS.map((name, i) => {
+    const n = i + 1;
+    const cls = ['step', n === S.step ? 'active' : '', n < S.step ? 'done' : '', n <= S.maxStep ? 'reach' : ''].join(' ');
+    return `<div class="${cls}" ${n <= S.maxStep ? `onclick="goStep(${n})"` : ''}><span class="n">${n < S.step ? '✓' : n}</span>${name}</div>`;
+  }).join('');
+  $('backBtn').style.visibility = S.step === 1 ? 'hidden' : 'visible';
+  $('nextBtn').style.display = S.step === STEPS.length ? 'none' : '';
+}
+
+function validateStep(n) {
+  if (n === 1) {
+    if (!deptId()) return 'Choose a department.';
+    if (S.sems.length === 0) return 'Tick at least one semester.';
+    const missing = sortedSems().filter(s => !S.subjects.some(x => Number(x.semester) === s));
+    if (missing.length) return `Add subjects for semester ${missing.join(', ')} first.`;
+  }
+  if (n === 2) {
+    if (S.faculty.length === 0) return 'Add at least one faculty member.';
+  }
+  if (n === 3) {
+    const missing = sortedSems().filter(s => !(S.sections[s] || []).length);
+    if (missing.length) return `Add at least one section for semester ${missing.join(', ')}.`;
+    for (const s of sortedSems())
+      for (const sec of S.sections[s]) if (effectiveSubjectIds(sec, s).length === 0) return `Section ${sec.name} has no subjects ticked.`;
+  }
+  return null;
+}
+
+async function goStep(n) {
+  if (n > S.step) {
+    for (let i = S.step; i < n; i++) {
+      const err = validateStep(i);
+      if (err) { setStatus(err, true); return; }
+    }
+  }
+  S.step = n;
+  S.maxStep = Math.max(S.maxStep, n);
+  document.querySelectorAll('.stepStage').forEach((el, i) => { el.style.display = (i + 1 === n) ? '' : 'none'; });
+  renderStepper();
+  setStatus('', false);
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+  try {
+    if (n === 1) { renderSubjects(); }
+    if (n === 2) { await loadFaculty(); await loadMappings(); renderAssign(); }
+    if (n === 3) { await loadSections(); }
+    if (n === 4) { renderSummary(); }
+  } catch (err) { setStatus('Error: ' + err.message, true); }
+}
+const nextStep = () => goStep(S.step + 1);
+const prevStep = () => goStep(S.step - 1);
+
+/* ───────── STEP 1 : session / semesters / subjects ───────── */
+async function loadDepartments() {
+  const sel = $('departmentId');
+  try {
+    S.departments = await api('/departments');
+  } catch (e) { S.departments = []; }
+  if (S.departments.length) {
+    sel.innerHTML = S.departments.map(d => `<option value="${d.id}">${esc(d.name || d.code || ('Department ' + d.id))}</option>`).join('');
+  } else {
+    sel.innerHTML = '<option value="1">Department 1</option>';
+  }
+}
+
+async function refreshDepartments(selectId) {
+  await loadDepartments();
+  const sel = $('departmentId');
+  if (selectId && [...sel.options].some(o => o.value === String(selectId))) sel.value = selectId;
+  await onDepartmentChange();
+}
+
+async function addDepartment() {
+  const name = (prompt('New department name (e.g. Information Technology):') || '').trim();
+  if (!name) return;
+  try {
+    const d = await api('/planner/departments', jsonOpts('POST', { name }));
+    setStatus(`Department "${name}" added.`, false);
+    await refreshDepartments(d.id);
+  } catch (err) { setStatus('Add department failed: ' + err.message, true); }
+}
+
+async function renameDepartment() {
+  const cur = S.departments.find(d => String(d.id) === deptId());
+  if (!cur) return;
+  const name = (prompt('Rename department:', cur.name) || '').trim();
+  if (!name || name === cur.name) return;
+  try {
+    await api('/planner/departments/' + cur.id, jsonOpts('PUT', { name }));
+    setStatus('Department renamed.', false);
+    await refreshDepartments(cur.id);
+  } catch (err) { setStatus('Rename failed: ' + err.message, true); }
+}
+
+async function deleteDepartment() {
+  const cur = S.departments.find(d => String(d.id) === deptId());
+  if (!cur) return;
+  if (!confirm(`Delete department "${cur.name}"?`)) return;
+  try {
+    await api('/planner/departments/' + cur.id, { method: 'DELETE' });
+    setStatus('Department deleted.', false);
+    await refreshDepartments();
+  } catch (err) { setStatus('Delete failed: ' + err.message, true); }
+}
+
+function renderParity() {
+  document.querySelectorAll('input[name=parity]').forEach(r => { r.checked = (r.value === S.parity); });
+  $('semChips').innerHTML = PARITY[S.parity].map(s =>
+    `<label class="chip"><input type="checkbox" value="${s}" ${S.sems.includes(s) ? 'checked' : ''} onchange="toggleSem(${s}, this.checked)"> Semester ${s}</label>`
+  ).join('');
+  $('subSem').innerHTML = sortedSems().map(s => `<option value="${s}">${s}</option>`).join('');
+  renderBlockedApplies();
+  const es = $('elSem'); if (es) { const k = es.value; es.innerHTML = sortedSems().map(s => `<option value="${s}">${s}</option>`).join(''); if (sortedSems().map(String).includes(k)) es.value = k; }
+}
+
+function setParity(p) {
+  if (p === S.parity) return;
+  S.parity = p;
+  S.sems = [];
+  S.subjects = [];
+  renderParity(); renderSubjects(); saveSettings();
+}
+
+async function toggleSem(s, on) {
+  S.sems = on ? [...new Set([...S.sems, s])] : S.sems.filter(x => x !== s);
+  renderParity(); saveSettings();
+  await loadSubjects();
+}
+
+async function onDepartmentChange() {
+  saveSettings();
+  S.sections = {}; S.mappings = [];
+  await loadSubjects();
+  await loadBlocked();
+}
+
+async function loadSubjects() {
+  try {
+    const all = await api('/subjects');
+    S.subjects = all.filter(s => String(s.department_id) === String(deptId()) && S.sems.includes(Number(s.semester)));
+    renderSubjects();
+  } catch (err) { setStatus('Error loading subjects: ' + err.message, true); }
+}
+
+function renderSubjects() {
+  const tbody = $('subjectsBody');
+  if (S.sems.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="6" class="empty">Tick a semester above to start adding its subjects.</td></tr>';
+    return;
+  }
+  let html = '';
+  sortedSems().forEach(sem => {
+    const list = S.subjects.filter(s => Number(s.semester) === sem);
+    const credits = list.reduce((a, s) => a + Number(s.credits || 0), 0);
+    html += `<tr class="sem-row"><td colspan="6">Semester ${sem} — ${list.length} subject(s), ${credits} credits</td></tr>`;
+    if (!list.length) html += '<tr><td colspan="6" class="empty">No subjects yet.</td></tr>';
+    list.forEach(s => {
+      html += `<tr><td>${esc(s.name)}</td><td>${esc(s.code)}</td><td>${esc(s.credits)}</td>
+        <td>${subjectType(s)}</td><td>${s.is_placement ? 'Yes' : 'No'}</td>
+        <td><button class="danger small" onclick="removeSubject(${s.id})">Remove</button></td></tr>`;
+    });
+  });
+  tbody.innerHTML = html;
+}
+
+function subjectType(s) {
+  if (s.elective_group) return 'Elective ' + s.elective_group;
+  if (s.is_project) return 'Project hours';
+  if (s.is_placement) return 'Placement';
+  if (s.has_lab && Number(s.theory_hours) === 0) return 'Lab only (2 periods)';
+  if (s.has_lab) return 'Theory + Lab';
+  return 'Theory';
+}
+
+// A lab-only subject has no theory hours; it is just the 2-consecutive-period lab.
+// Only one "kind" of subject at a time: regular (theory/lab), lab only,
+// placement, project hours or elective.
+function syncTypeBoxes() {
+  const lo = $('subLabOnly').checked, pl = $('subIsPlacement').checked,
+        pr = $('subIsProject').checked, el = $('subElective').value.trim() !== '';
+  const special = lo || pl || pr || el;
+  $('subHasLab').disabled = pl || pr || el || lo;
+  $('subLabOnly').disabled = pl || pr || el;
+  $('subIsPlacement').disabled = lo || pr || el;
+  $('subIsProject').disabled = lo || pl || el;
+  $('subElective').disabled = lo || pl || pr;
+}
+function onProjectChange() {
+  if ($('subIsProject').checked) { $('subHasLab').checked = false; $('subLabOnly').checked = false; $('subIsPlacement').checked = false; }
+  syncTypeBoxes();
+}
+function onElectiveChange() {
+  if ($('subElective').value.trim()) { $('subHasLab').checked = false; $('subLabOnly').checked = false; $('subIsPlacement').checked = false; $('subIsProject').checked = false; }
+  syncTypeBoxes();
+}
+function onLabOnlyChange() {
+  if ($('subLabOnly').checked) { $('subHasLab').checked = true; $('subIsPlacement').checked = false; }
+  syncTypeBoxes();
+}
+// Placement is a 2-period session with no theory, no lab and no faculty.
+function onPlacementChange() {
+  if ($('subIsPlacement').checked) { $('subHasLab').checked = false; $('subLabOnly').checked = false; }
+  syncTypeBoxes();
+}
+
+function creditsToFields(credits) {
+  const c = parseInt(credits, 10);
+  if (c === 4) return { theory_hours: 3, has_lab: true };
+  if (c === 3) return { theory_hours: 3, has_lab: false };
+  if (c === 2) return { theory_hours: 2, has_lab: false };
+  return { theory_hours: 1, has_lab: false };
+}
+
+async function addSubject() {
+  const sem = $('subSem').value;
+  const name = $('subName').value.trim();
+  const code = $('subCode').value.trim();
+  const credits = $('subCredits').value;
+  if (!sem) { setStatus('Tick a semester first.', true); return; }
+  if (!name || !code) { setStatus('Enter the subject name and code.', true); return; }
+  const f = creditsToFields(credits);
+  const labOnly = $('subLabOnly').checked;
+  const isPlacement = $('subIsPlacement').checked;
+  try {
+    // Subject codes must be unique across the whole database, so check first
+    // and say exactly where the clash is.
+    const all = await api('/subjects');
+    const clash = all.find(s => String(s.code).trim().toLowerCase() === code.toLowerCase());
+    if (clash) {
+      const dept = (S.departments.find(d => String(d.id) === String(clash.department_id)) || {}).name || ('department ' + clash.department_id);
+      setStatus(`Code "${code}" is already used by "${clash.name}" (${dept}, semester ${clash.semester}). Use a different code, e.g. ${code}L for a lab.`, true);
+      return;
+    }
+    const elective = $('subElective').value.trim().toUpperCase();
+    const isProject = $('subIsProject').checked;
+    const noTheory = labOnly || isPlacement || isProject || !!elective;
+    const want = {
+      theory_hours: noTheory ? 0 : f.theory_hours,
+      has_lab: !isPlacement && !isProject && !elective && (labOnly || $('subHasLab').checked || f.has_lab),
+      is_placement: isPlacement,
+      is_project: isProject,
+      elective_group: elective || null
+    };
+    const created = await api('/subjects', jsonOpts('POST', {
+      name, code, credits: parseInt(credits, 10), ...want,
+      department_id: parseInt(deptId(), 10), semester: parseInt(sem, 10)
+    }));
+    // The subjects route may ignore some of these fields, so set the type explicitly.
+    let id = created && created.id;
+    if (!id) {
+      const again = await api('/subjects');
+      const row = again.find(s => String(s.code) === code);
+      id = row && row.id;
+    }
+    if (id) await api('/planner/subjects/' + id, jsonOpts('PATCH', want));
+    $('subName').value = ''; $('subCode').value = '';
+    $('subLabOnly').checked = false; $('subHasLab').checked = false; $('subIsPlacement').checked = false;
+    $('subIsProject').checked = false; $('subElective').value = '';
+    syncTypeBoxes();
+    setStatus('Subject added.', false);
+    await loadSubjects();
+  } catch (err) { setStatus('Add subject failed: ' + err.message, true); }
+}
+
+async function removeSubject(id) {
+  if (!confirm('Remove this subject?')) return;
+  try {
+    await api('/subjects/' + id, { method: 'DELETE' });
+    await loadSubjects();
+  } catch (err) { setStatus('Remove failed: ' + err.message, true); }
+}
+
+/* ───────── electives import ───────── */
+async function importElectives() {
+  const sem = $('elSem').value;
+  if (!sem) { setStatus('Tick a semester first.', true); return; }
+  const rows = $('elRows').value.split(/\r?\n/).map(l => l.trim()).filter(Boolean).map(line => {
+    const cols = (line.includes('\t') ? line.split('\t') : line.split(/\s{2,}/)).map(c => c.trim());
+    return { group: cols[0], code: cols[1], name: cols[2],
+             faculty: cols.slice(3).filter(f => f && f !== '-' && f !== '—') };
+  });
+  const bad = rows.find(r => !r.group || !r.code || !r.name);
+  if (!rows.length) { setStatus('Paste at least one elective line.', true); return; }
+  if (bad) { setStatus('Each line needs: group, code, subject name (then faculty). Check: ' + JSON.stringify(bad), true); return; }
+  try {
+    const r = await api('/planner/electives/import', jsonOpts('POST', {
+      department_id: parseInt(deptId(), 10), semester: parseInt(sem, 10), rows,
+      credits: parseInt($('elCredits').value, 10) || 3, add_project: $('elProject').checked
+    }));
+    let html = `<div class="ok">Imported: ${r.subjects_created} subject(s) added, ${r.subjects_updated} updated, ${r.mappings_created} faculty assignment(s)` +
+      `${r.project_created ? ', Project Work added' : ''}.</div>`;
+    if (r.faculty_created.length) {
+      html += `<div class="warn"><b>New faculty were added with a placeholder email and Assistant Professor (16 hrs):</b> ${r.faculty_created.map(f => esc(f.name)).join(', ')}.
+        Open step 2 to set their real email, designation and hours.</div>`;
+    }
+    if (r.matched.length) html += `<div class="hint">Matched to existing faculty: ${r.matched.map(esc).join('; ')}</div>`;
+    $('elResult').innerHTML = html;
+    $('elRows').value = '';
+    await loadSubjects();
+  } catch (err) { setStatus('Import failed: ' + err.message, true); }
+}
+
+/* ───────── blocked periods ───────── */
+S.blocked = [];
+
+async function loadBlocked() {
+  try {
+    S.blocked = await api(`/planner/blocked?department_id=${deptId()}`);
+    renderBlocked();
+  } catch (err) { setStatus('Error loading blocked periods: ' + err.message, true); }
+}
+
+function renderBlockedApplies() {
+  const sel = $('blkSem');
+  if (!sel) return;
+  const keep = sel.value;
+  sel.innerHTML = '<option value="">All semesters</option>' + sortedSems().map(s => `<option value="${s}">Semester ${s} only</option>`).join('');
+  if ([...sel.options].some(o => o.value === keep)) sel.value = keep;
+}
+
+function renderBlocked() {
+  const tbody = $('blockedBody');
+  if (!tbody) return;
+  const order = d => DAYS.indexOf(d);
+  const rows = [...S.blocked].sort((a, b) => order(a.day) - order(b.day) || a.period_number - b.period_number);
+  tbody.innerHTML = rows.length ? rows.map(b => `<tr>
+      <td>${esc(b.day)}</td><td>P${esc(b.period_number)}</td><td>${esc(b.reason || 'Blocked')}</td>
+      <td>${b.semester == null ? 'All semesters' : 'Semester ' + esc(b.semester)}</td>
+      <td><button class="danger small" onclick="removeBlocked(${b.id})">Remove</button></td></tr>`).join('')
+    : '<tr><td colspan="5" class="empty">No blocked periods.</td></tr>';
+}
+
+async function addBlocked() {
+  const sem = $('blkSem').value;
+  try {
+    await api('/planner/blocked', jsonOpts('POST', {
+      department_id: parseInt(deptId(), 10), day: $('blkDay').value, period_number: parseInt($('blkPeriod').value, 10),
+      reason: $('blkReason').value.trim() || 'Blocked', semester: sem ? parseInt(sem, 10) : null
+    }));
+    $('blkReason').value = '';
+    setStatus('Period blocked.', false);
+    await loadBlocked();
+  } catch (err) { setStatus('Block failed: ' + err.message, true); }
+}
+
+async function removeBlocked(id) {
+  try {
+    await api('/planner/blocked/' + id, { method: 'DELETE' });
+    await loadBlocked();
+  } catch (err) { setStatus('Remove failed: ' + err.message, true); }
+}
+
+/* ───────── STEP 2 : faculty ───────── */
+const DEFAULT_HOURS = { 'Professor': 12, 'Associate Professor': 14, 'Assistant Professor': 16, 'Adjunct Faculty': 16 };
+function applyDefaultHours(selId, hoursId) { $(hoursId).value = DEFAULT_HOURS[$(selId).value] ?? 16; }
+
+async function loadFaculty() {
+  try {
+    S.faculty = await api(`/faculty?department_id=${deptId()}`);
+    renderFaculty();
+  } catch (err) { setStatus('Error loading faculty: ' + err.message, true); }
+}
+
+function desigOptions(selected) {
+  return Object.keys(DEFAULT_HOURS).map(d => `<option ${d === selected ? 'selected' : ''}>${d}</option>`).join('');
+}
+
+function renderFaculty() {
+  const tbody = $('facultyBody');
+  if (!S.faculty.length) { tbody.innerHTML = '<tr><td colspan="5" class="empty">No faculty yet. Add the first one above.</td></tr>'; return; }
+  tbody.innerHTML = S.faculty.map(f => `
+    <tr id="frow-${f.id}">
+      <td><input type="text" class="f-name" value="${esc(f.name)}"></td>
+      <td><input type="email" class="f-email" value="${esc(f.email || '')}">${/@pending\.invalid$/.test(f.email || '') ? '<div style="color:#b26a00;font-size:11px;">⚠ placeholder email — replace it</div>' : ''}</td>
+      <td><select class="f-desig" onchange="document.querySelector('#frow-${f.id} .f-hours').value = DEFAULT_HOURS[this.value] ?? 16">${desigOptions(f.seniority)}</select></td>
+      <td><input type="number" class="f-hours" min="1" max="40" value="${esc(f.max_hours_per_week)}"></td>
+      <td style="white-space:nowrap;">
+        <button class="small" onclick="saveFaculty(${f.id})">Save</button>
+        <button class="danger small" onclick="removeFaculty(${f.id})">Remove</button>
+      </td>
+    </tr>`).join('');
+  renderAssign();
+}
+
+async function addFaculty() {
+  const name = $('facName').value.trim();
+  const email = $('facEmail').value.trim();
+  if (!name) { setStatus('Enter the faculty name.', true); return; }
+  if (!email) { setStatus('Enter the faculty email (the database requires one).', true); return; }
+  try {
+    await api('/faculty', jsonOpts('POST', {
+      name, email, seniority: $('facSeniority').value, department_id: parseInt(deptId(), 10),
+      max_hours_per_week: parseInt($('facMaxHours').value, 10)
+    }));
+    $('facName').value = ''; $('facEmail').value = '';
+    setStatus('Faculty added.', false);
+    await loadFaculty();
+  } catch (err) { setStatus('Add faculty failed: ' + err.message, true); }
+}
+
+async function saveFaculty(id) {
+  const f = S.faculty.find(x => x.id === id);
+  const row = $('frow-' + id);
+  try {
+    await api('/faculty/' + id, jsonOpts('PUT', {
+      name: row.querySelector('.f-name').value.trim() || f.name,
+      email: row.querySelector('.f-email').value.trim() || f.email,
+      seniority: row.querySelector('.f-desig').value,
+      department_id: f.department_id,
+      max_hours_per_week: parseInt(row.querySelector('.f-hours').value, 10)
+    }));
+    setStatus('Faculty updated.', false);
+    await loadFaculty();
+  } catch (err) { setStatus('Save failed: ' + err.message, true); }
+}
+
+async function removeFaculty(id) {
+  if (!confirm('Remove this faculty member?')) return;
+  try {
+    await api('/faculty/' + id, { method: 'DELETE' });
+    await loadFaculty(); await loadMappings();
+  } catch (err) { setStatus('Remove failed: ' + err.message, true); }
+}
+
+/* faculty ↔ subject mappings */
+async function loadMappings() {
+  try {
+    S.mappings = await api('/faculty-subjects');
+    renderMappings();
+  } catch (err) { setStatus('Error loading assignments: ' + err.message, true); }
+}
+
+function renderAssign() {
+  const subSel = $('assignSubject'), facBox = $('assignFaculty');
+  if (!subSel || !facBox) return;
+  const keep = subSel.value;
+  subSel.innerHTML = sortedSems().map(sem => {
+    const opts = S.subjects.filter(s => Number(s.semester) === sem)
+      .map(s => `<option value="${s.id}">${esc(s.name)} (${esc(s.code)})</option>`).join('');
+    return opts ? `<optgroup label="Semester ${sem}">${opts}</optgroup>` : '';
+  }).join('');
+  if (keep && S.subjects.some(s => String(s.id) === keep)) subSel.value = keep;
+  const ticked = Array.from(facBox.querySelectorAll('input:checked')).map(i => i.value);
+  facBox.innerHTML = S.faculty.map(f =>
+    `<label><input type="checkbox" value="${f.id}" ${ticked.includes(String(f.id)) ? 'checked' : ''}> ${esc(f.name)} — ${esc(f.seniority)}</label>`
+  ).join('') || '<div class="empty">Add faculty first.</div>';
+  renderMappings();
+}
+
+function renderMappings() {
+  const tbody = $('mappingBody');
+  if (!tbody) return;
+  const ids = S.subjects.map(s => String(s.id));
+  let html = '';
+  const uncovered = [];
+  sortedSems().forEach(sem => {
+    S.subjects.filter(s => Number(s.semester) === sem).forEach(s => {
+      const ms = S.mappings.filter(m => String(m.subject_id) === String(s.id));
+      if (!ms.length && !s.is_placement) uncovered.push(`${s.name} (Sem ${sem})`);
+      html += `<tr><td>${sem}</td><td>${esc(s.name)}</td><td>${
+        ms.length ? ms.map(m => `<span style="display:inline-flex;gap:6px;align-items:center;margin:2px 10px 2px 0;">${esc(m.faculty_name)}
+          <button class="danger small" style="padding:1px 7px;" title="Remove ${esc(m.faculty_name)}" onclick="removeMapping(${m.id})">×</button></span>`).join('')
+              : (s.is_placement ? '<span class="empty">Placement — no faculty needed</span>' : '<span class="empty">— none —</span>')
+      }</td><td></td></tr>`;
+    });
+  });
+  tbody.innerHTML = html || '<tr><td colspan="4" class="empty">No subjects.</td></tr>';
+  $('coverage').innerHTML = uncovered.length
+    ? `<div class="warn"><b>No faculty assigned yet:</b> ${uncovered.map(esc).join(', ')}. These will be scheduled without a teacher.</div>`
+    : (S.subjects.length ? '<div class="ok">Every subject has at least one faculty member.</div>' : '');
+}
+
+async function assignFacultyToSubject() {
+  const subjectId = $('assignSubject').value;
+  const picked = Array.from(document.querySelectorAll('#assignFaculty input:checked')).map(i => i.value);
+  if (!subjectId) { setStatus('Add a subject first.', true); return; }
+  if (!picked.length) { setStatus('Tick at least one faculty.', true); return; }
+  const already = S.mappings.filter(m => String(m.subject_id) === subjectId).map(m => String(m.faculty_id));
+  const toAdd = picked.filter(id => !already.includes(id));
+  if (!toAdd.length) { setStatus('Those faculty are already assigned to this subject.', true); return; }
+  try {
+    for (const fid of toAdd)
+      await api('/faculty-subjects', jsonOpts('POST', { faculty_id: parseInt(fid, 10), subject_id: parseInt(subjectId, 10) }));
+    document.querySelectorAll('#assignFaculty input:checked').forEach(i => { i.checked = false; });
+    setStatus(`${toAdd.length} faculty assigned.`, false);
+    await loadMappings();
+  } catch (err) { setStatus('Assign failed: ' + err.message, true); }
+}
+
+async function removeMapping(id) {
+  try {
+    await api('/faculty-subjects/' + id, { method: 'DELETE' });
+    await loadMappings();
+  } catch (err) { setStatus('Remove failed: ' + err.message, true); }
+}
+
+/* ───────── STEP 3 : sections ───────── */
+// A section with nothing saved yet studies every subject of its semester.
+function semSubjects(sem) { return S.subjects.filter(s => Number(s.semester) === Number(sem)); }
+function effectiveSubjectIds(sec, sem) {
+  const all = semSubjects(sem).map(s => s.id);
+  return sec.subject_ids && sec.subject_ids.length ? sec.subject_ids.filter(id => all.includes(id)) : all;
+}
+
+async function loadSections() {
+  try {
+    await loadSubjects();
+    for (const sem of sortedSems()) {
+      S.sections[sem] = await api(`/planner/sections?department_id=${deptId()}&semester=${sem}`);
+    }
+    renderSections();
+  } catch (err) { setStatus('Error loading sections: ' + err.message, true); }
+}
+
+function nextSectionName(sem) {
+  const used = (S.sections[sem] || []).map(s => s.name.toUpperCase());
+  for (const L of 'ABCDEFGHIJKLMNOPQRSTUVWXYZ') if (!used.includes(`${sem}${L}`)) return `${sem}${L}`;
+  return `${sem}-${used.length + 1}`;
+}
+
+function renderSections() {
+  const host = $('semCards');
+  if (!S.sems.length) { host.innerHTML = '<div class="empty">Go back and tick a semester.</div>'; return; }
+  host.innerHTML = sortedSems().map(sem => {
+    const secs = S.sections[sem] || [];
+    const subs = semSubjects(sem);
+    const boxes = secs.map(sec => {
+      const on = effectiveSubjectIds(sec, sem);
+      return `<div class="sec-box">
+        <div class="head"><span>${esc(sec.name)} <span class="cnt">· ${on.length}/${subs.length} subjects</span></span>
+          <button class="danger small" onclick="removeSection(${sem}, ${sec.id})">Delete</button></div>
+        ${subs.map(s => `<label><input type="checkbox" ${on.includes(s.id) ? 'checked' : ''}
+            onchange="toggleSectionSubject(${sem}, ${sec.id}, ${s.id}, this.checked)"> ${esc(s.name)} <span class="cnt">${esc(s.code)}${s.elective_group ? ' · elective ' + esc(s.elective_group) : s.is_project ? ' · project hours' : s.has_lab && Number(s.theory_hours) === 0 ? ' · lab only' : ''}</span></label>`).join('')}
+      </div>`;
+    }).join('');
+    return `<div class="sem-card">
+      <h3>Semester ${sem} <span class="cnt" style="font-weight:400;color:#666;font-size:13px;">· ${secs.length} section(s), ${subs.length} subjects</span></h3>
+      <div class="form-row">
+        <label>Section name <input type="text" id="secName-${sem}" placeholder="${nextSectionName(sem)}" style="width:150px;"
+            onkeydown="if(event.key==='Enter') addSection(${sem})"></label>
+        <button onclick="addSection(${sem})">+ Add Section</button>
+      </div>
+      ${secs.length ? `<div class="sec-grid">${boxes}</div>` : '<div class="empty">No sections yet — add 3A, 3B … for this semester.</div>'}
+    </div>`;
+  }).join('');
+}
+
+async function addSection(sem) {
+  const input = $('secName-' + sem);
+  const name = (input.value.trim() || nextSectionName(sem));
+  try {
+    const sec = await api('/planner/sections', jsonOpts('POST', { name, department_id: parseInt(deptId(), 10), semester: sem }));
+    // start with every subject of the semester ticked
+    const ids = semSubjects(sem).map(s => s.id);
+    if (ids.length) await api(`/planner/sections/${sec.id}/subjects`, jsonOpts('PUT', { subject_ids: ids }));
+    sec.subject_ids = ids;
+    (S.sections[sem] = S.sections[sem] || []).push(sec);
+    renderSections();
+  } catch (err) { setStatus('Add section failed: ' + err.message, true); }
+}
+
+async function removeSection(sem, id) {
+  if (!confirm('Delete this section and its timetable?')) return;
+  try {
+    await api('/planner/sections/' + id, { method: 'DELETE' });
+    S.sections[sem] = S.sections[sem].filter(s => s.id !== id);
+    renderSections();
+  } catch (err) { setStatus('Delete failed: ' + err.message, true); }
+}
+
+async function toggleSectionSubject(sem, secId, subjectId, on) {
+  const sec = S.sections[sem].find(s => s.id === secId);
+  const cur = new Set(effectiveSubjectIds(sec, sem));
+  on ? cur.add(subjectId) : cur.delete(subjectId);
+  const ids = [...cur];
+  try {
+    await api(`/planner/sections/${secId}/subjects`, jsonOpts('PUT', { subject_ids: ids }));
+    sec.subject_ids = ids;
+    renderSections();
+  } catch (err) { setStatus('Save failed: ' + err.message, true); renderSections(); }
+}
+
+/* ───────── STEP 4 : generate ───────── */
+function renderSummary() {
+  $('summary').innerHTML = `<table class="subjects"><thead><tr><th>Semester</th><th>Sections</th><th>Subjects per section</th></tr></thead><tbody>${
+    sortedSems().map(sem => {
+      const secs = S.sections[sem] || [];
+      return `<tr><td>${sem}</td><td>${secs.map(s => esc(s.name)).join(', ') || '—'}</td>
+        <td>${secs.map(s => `${esc(s.name)}: ${effectiveSubjectIds(s, sem).length}`).join(' · ')}</td></tr>`;
+    }).join('')}</tbody></table>
+    <p class="hint" style="margin-top:10px;">Session ${esc($('academicYear').value)}. Semesters are generated lowest first, and each later one avoids every slot a faculty member is already teaching.</p>`;
+}
+
+async function resetSem(sem) {
+  await api('/timetable/reset', jsonOpts('DELETE', { academic_year: $('academicYear').value, semester: sem, department_id: deptId() }));
+}
+
+async function resetOnly() {
+  try {
+    for (const sem of sortedSems()) await resetSem(sem);
+    $('resultsArea').style.display = 'none';
+    setStatus('Reset done.', false);
+  } catch (err) { setStatus('Reset failed: ' + err.message, true); }
+}
+
+async function generate() {
+  const year = $('academicYear').value;
+  $('loading').style.display = 'block';
+  $('resultsArea').style.display = 'none';
+  setStatus('', false);
+  try {
+    const sems = sortedSems();
+    // clear all chosen semesters first so stale bookings never block anyone
+    for (const sem of sems) await resetSem(sem);
+
+    let assigned = 0;
+    const warns = [];
+    for (const sem of sems) {
+      const gen = await api('/timetable/generate', jsonOpts('POST', { academic_year: year, semester: sem, department_id: deptId() }));
+      if (gen.success === false) throw new Error(`Semester ${sem}: ${gen.error || 'generation failed'}`);
+      assigned += gen.total_assigned || 0;
+      (gen.warnings || []).forEach(w => warns.push(`Semester ${sem} · ${w}`));
+    }
+
+    let blocked = [];
+    try { blocked = await api(`/planner/blocked?department_id=${deptId()}`); } catch (e) {}
+
+    const data = [];
+    for (const sem of sems) {
+      for (const sec of (S.sections[sem] || [])) {
+        let slots = [];
+        try { slots = await api('/timetable/batch/' + sec.id); } catch (e) {}
+        data.push({ sem, id: sec.id, name: sec.name, slots });
+      }
+    }
+    S.results = { data, blocked, warns };
+    renderResults();
+    setStatus(`Generated successfully — ${assigned} slots across ${data.length} section(s).`, false);
+  } catch (err) {
+    setStatus('Error: ' + err.message, true);
+  } finally {
+    $('loading').style.display = 'none';
+  }
+}
+
+let activeSem = null, activeSec = null;
+function renderResults() {
+  const { data, blocked } = S.results;
+  const sems = [...new Set(data.map(d => d.sem))];
+  $('statSems').textContent = sems.length;
+  $('statSections').textContent = data.length;
+  $('statTotal').textContent = data.reduce((a, d) => a + d.slots.length, 0);
+  $('statBlocked').textContent = blocked.length;
+  $('genWarnings').innerHTML = (S.results.warns || []).length
+    ? `<div class="warn"><b>Heads up:</b><ul style="margin:6px 0 0 18px;padding:0;">${S.results.warns.map(w => `<li>${esc(w)}</li>`).join('')}</ul></div>` : '';
+
+  $('sectionPanels').innerHTML = data.map(d =>
+    `<div class="section-panel" id="panel-${d.id}">${buildGrid(d.slots, blocked.filter(b => b.semester == null || Number(b.semester) === Number(d.sem)))}</div>`).join('');
+  activeSem = sems[0];
+  activeSec = null;
+  showSem(activeSem);
+  renderLoad();
+  $('resultsArea').style.display = 'block';
+}
+
+function showSem(sem) {
+  activeSem = sem;
+  const { data } = S.results;
+  const sems = [...new Set(data.map(d => d.sem))];
+  $('semTabs').innerHTML = sems.length > 1
+    ? sems.map(s => `<button class="tab-btn ${s === sem ? 'active' : ''}" onclick="showSem(${s})">Semester ${s}</button>`).join('') : '';
+  const secs = data.filter(d => d.sem === sem);
+  if (!secs.some(d => d.id === activeSec)) activeSec = secs[0] && secs[0].id;
+  paintSections();
+}
+
+function paintSections() {
+  const { data } = S.results;
+  const secs = data.filter(d => d.sem === activeSem);
+  $('sectionTabs').innerHTML = secs.map(d =>
+    `<button class="tab-btn ${d.id === activeSec ? 'active' : ''}" onclick="showSection(${d.id})">${esc(d.name)} (${d.slots.length})</button>`).join('');
+  data.forEach(d => $('panel-' + d.id).classList.toggle('active', d.id === activeSec));
+}
+function showSection(id) { activeSec = id; paintSections(); }
+
+function renderLoad() {
+  const hours = {};
+  S.results.data.forEach(d => d.slots.forEach(s => { if (s.faculty_name) hours[s.faculty_name] = (hours[s.faculty_name] || 0) + 1; }));
+  const rows = Object.keys(hours).sort().map(name => {
+    const f = S.faculty.find(x => x.name === name);
+    const cap = f ? f.max_hours_per_week : null;
+    const pct = cap ? Math.min(100, Math.round(hours[name] * 100 / cap)) : 0;
+    return `<tr><td>${esc(name)}</td><td>${esc(f ? f.seniority : '—')}</td><td>${hours[name]}</td><td>${cap ?? '—'}</td>
+      <td><div class="bar"><i class="${pct > 60 ? 'hi' : ''}" style="width:${pct}%"></i></div></td></tr>`;
+  });
+  $('loadBody').innerHTML = rows.join('') || '<tr><td colspan="5" class="empty">No faculty were scheduled — assign faculty to subjects in step 2.</td></tr>';
+}
+
+function buildGrid(slots, blocked) {
+  const grid = {};
+  DAYS.forEach(d => { grid[d] = {}; PERIODS.forEach(p => grid[d][p] = []); });
+  slots.forEach(s => { if (grid[s.day] && grid[s.day][s.period_number] !== undefined) grid[s.day][s.period_number].push(s); });
+
+  const blockedMap = {};
+  blocked.forEach(b => {
+    if (!blockedMap[b.day]) blockedMap[b.day] = {};
+    blockedMap[b.day][b.period_number] = b.reason || b.description || 'Blocked';
+  });
+
+  let html = '<table class="grid"><thead><tr><th>Day</th>';
+  PERIODS.forEach(p => html += `<th>P${p}</th>`);
+  html += '</tr></thead><tbody>';
+  DAYS.forEach(day => {
+    html += `<tr><td class="day-label">${day}</td>`;
+    PERIODS.forEach(period => {
+      const entries = grid[day][period];
+      const blockReason = blockedMap[day] && blockedMap[day][period];
+      if (blockReason) {
+        html += `<td class="cell-blocked">${esc(blockReason)}</td>`;
+      } else if (!entries.length) {
+        html += '<td class="cell-empty">—</td>';
+      } else {
+        let cellClass = 'cell-theory', content = '';
+        entries.forEach(e => {
+          const meta = S.subjects.find(x => x.code === e.subject_code) || {};
+          const isElective = !!meta.elective_group, isProject = !!meta.is_project;
+          const isLab = !isElective && !isProject && (!!e.is_lab || /lab/i.test(e.subject_name || ''));
+          const isPlacement = !isElective && !isProject && (!!meta.is_placement || /placement/i.test(e.subject_name || '') || (!e.faculty_name && !isLab));
+          if (isElective) cellClass = 'cell-elective';
+          else if (isProject) cellClass = 'cell-project';
+          else if (isPlacement) cellClass = 'cell-placement'; else if (isLab) cellClass = 'cell-lab';
+          content += `<span class="${entries.length > 1 ? 'cell-split' : ''}">`;
+          content += `<span class="subj-name">${esc(e.subject_name || 'Placement Session')}</span>`;
+          if (e.subject_code) content += `<span class="subj-code">${esc(e.subject_code)}</span>`;
+          if (e.faculty_name) content += `<span class="subj-room">${esc(e.faculty_name)}</span>`;
+          if (e.room_name) content += `<span class="subj-room">${esc(e.room_name)}</span>`;
+          content += '</span>';
+        });
+        html += `<td class="${cellClass}">${content}</td>`;
+      }
+    });
+    html += '</tr>';
+  });
+  return html + '</tbody></table>';
+}
+
+/* ───────── start ───────── */
+window.addEventListener('DOMContentLoaded', async () => {
+  const saved = loadSettings();
+  if (saved) {
+    if (saved.api) $('apiBase').value = saved.api;
+    if (saved.year) $('academicYear').value = saved.year;
+    if (saved.parity) S.parity = saved.parity;
+    if (Array.isArray(saved.sems)) S.sems = saved.sems.filter(s => PARITY[S.parity].includes(s));
+  }
+  await loadDepartments();
+  if (saved && saved.dept && [...$('departmentId').options].some(o => o.value === String(saved.dept))) $('departmentId').value = saved.dept;
+  renderStepper();
+  renderParity();
+  await loadSubjects();
+  await loadBlocked();
+});
+</script>
+</body>
+</html>
